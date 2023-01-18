@@ -6,44 +6,59 @@ import java.util.Collections;
 import java.util.List;
 
 public class CSVsorting {
-        public static int splitFile(String filePath, int numberOfRowsInSigleFile) throws IOException {
+        public static int splitFile(String filePath, int numberOfRowsInSingleFile) throws IOException {
             BufferedReader reader = new BufferedReader(new FileReader(filePath));
             int currNumberOfRows = 0;
 
             List<List<String>> files = new ArrayList<>();
             List<String> currFile = new ArrayList<>();
 
-            String line;
+            String line = "";
+            String header = reader.readLine();
+            String nextLine = "";
+
             try{
                 while((line = reader.readLine()) != null){
 
-                    line = reader.readLine();
+                    nextLine = reader.readLine();
                     currFile.add(line);
                     currNumberOfRows++;
 
-                    if(currNumberOfRows == numberOfRowsInSigleFile) {
+                    if(nextLine != null) {
+                        currFile.add(nextLine);
+                        currNumberOfRows++;
+                    }
+                    if(currNumberOfRows == numberOfRowsInSingleFile || nextLine == null) {
                         Collections.sort(currFile);
                         files.add(currFile);
                         currNumberOfRows = 0;
                         currFile = new ArrayList<>();
+
                     }
+
+                }
+                if(!currFile.isEmpty()){
+                    Collections.sort(currFile);
+                    files.add(currFile);
                 }
 
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
 
+            finally {
             reader.close();
+            }
+
 
             for(int i = 0; i < files.size(); i++){
                 File file = new File(filePath + "-" + i + ".csv");
-                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-
-                for(String s : files.get(i)){
-                    writer.write(s);
-                    writer.newLine();
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                    for (String s : files.get(i)) {
+                        writer.write(s);
+                        writer.newLine();
+                    }
                 }
-                writer.close();
             }
             return files.size();
         }
@@ -55,11 +70,11 @@ public class CSVsorting {
 
             BufferedReader reader = new BufferedReader(new FileReader(filePath + "-" + i + ".csv"));
 
-            String line = reader.readLine();
-            while(line != null) {
+            String line = "";
+            while((line = reader.readLine())!= null) {
                 lines.add(line);
-                line = reader.readLine();
             }
+
             reader.close();
 
         }
@@ -80,7 +95,7 @@ public class CSVsorting {
         String filePath = "C:\\Users\\vpetrov\\Desktop\\csv\\MOCK_DATA.csv";
 
         //Max rows in exel.
-        int maxRowsInOneFile = 1048575;
+        int maxRowsInOneFile = 300;
 
         String sortBy = "age";
 
