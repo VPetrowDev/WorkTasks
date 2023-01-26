@@ -1,7 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="UniqueEventsQueueTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2023-01-17T14:55:18" hostname="VPETROV-NB" time="0.025">
+<testsuite name="UniqueEventsQueueTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2023-01-19T13:53:21" hostname="VPETROV-NB" time="10.281">
   <properties/>
-  <testcase name="testGetWaitsForElement()" classname="UniqueEventsQueueTest" time="0.025"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
+  <testcase name="testAdd()" classname="UniqueEventsQueueTest" time="0.088"/>
+  <testcase name="testGet()" classname="UniqueEventsQueueTest" time="0.007"/>
+  <testcase name="isFull()" classname="UniqueEventsQueueTest" time="0.004"/>
+  <testcase name="testInterruptWaitingThreadForAddMethod()" classname="UniqueEventsQueueTest" time="0.013"/>
+  <testcase name="testLockConditions()" classname="UniqueEventsQueueTest" time="10.143"/>
+  <testcase name="getSize()" classname="UniqueEventsQueueTest" time="0.001"/>
+  <testcase name="testInterruptWaitingThreadForGetMethod()" classname="UniqueEventsQueueTest" time="0.015"/>
+  <system-out><![CDATA[Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+Added person: org.example.UniqueEventsQueue@6f45f85d
+Consumer consumed: org.example.UniqueEventsQueue@6f45f85d
+]]></system-out>
+  <system-err><![CDATA[Exception in thread "Thread-8" org.opentest4j.AssertionFailedError: expected: <Thread interrupted> but was: <null>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1141)
+	at UniqueEventsQueueTest.lambda$testInterruptWaitingThreadForGetMethod$0(UniqueEventsQueueTest.java:137)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+]]></system-err>
 </testsuite>

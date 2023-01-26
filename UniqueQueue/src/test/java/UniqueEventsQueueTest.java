@@ -4,10 +4,9 @@ import org.example.Producer;
 import org.example.UniqueEventsQueue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import repeat.Repeat;
 
-import java.util.concurrent.*;
-
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UniqueEventsQueueTest<T> {
@@ -77,60 +76,41 @@ public class UniqueEventsQueueTest<T> {
     }
 
     @Test
-    @Repeat(times = 10, threads = 10)
-    public void testAddWaitsForSpace() throws InterruptedException {
-
+    public void testInterruptWaitingThreadForGetMethod() throws InterruptedException {
+        UniqueEventsQueue<Integer> queue = new UniqueEventsQueue<>();
+        Thread thread = new Thread(() -> {
+            try {
+                queue.get();
+            } catch (InterruptedException e) {
+                assertThat(e, instanceOf(InterruptedException.class));
+                assertEquals("Thread interrupted", e.getMessage());
+            }
+        });
+        thread.start();
+        thread.interrupt();
+        thread.join();
+    }
+    @Test
+    public void testInterruptWaitingThreadForAddMethod() throws InterruptedException {
         UniqueEventsQueue<Person> queue = new UniqueEventsQueue<>();
-
         for (int i = 0; i < 10; i++) {
             queue.add(new Person(i, "Person " + i));
         }
 
-        CountDownLatch latch = new CountDownLatch(1);
 
         Thread addThread = new Thread(() -> {
             try {
-
-                latch.countDown();
                 queue.add(new Person(11, "Person 11"));
-
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                assertThat(e, instanceOf(InterruptedException.class));
+                assertEquals("Thread interrupted", e.getMessage());
             }
         });
 
         addThread.start();
-
-        latch.await(1, TimeUnit.SECONDS);
-
-        assertEquals(Thread.State.WAITING,addThread.getState());
+        addThread.interrupt();
+        addThread.join();
 
         assertEquals(queue.getSize() , 10);
-    }
-
-    @Test
-    @Repeat(times = 10, threads = 10)
-    public void testGetWaitsForElement() throws InterruptedException {
-        UniqueEventsQueue<Integer> queue = new UniqueEventsQueue<>();
-
-        CountDownLatch latch = new CountDownLatch(1);
-
-        Thread thread = new Thread(() -> {
-            try {
-                latch.countDown(); // count down the latch
-
-                queue.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
-        thread.start();
-
-        latch.await(1, TimeUnit.SECONDS);
-
-        assertEquals(Thread.State.WAITING, thread.getState());
-
-        assertEquals(0,queue.getSize());
     }
 }

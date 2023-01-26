@@ -1,136 +1,140 @@
 package org.example;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class CSVsorting {
 
-    public static void writeInFile(String filePath, List<List<String>> files){
+    public static long estimateBestSizeOfBlocks(File fileToBeSorted) {
 
-        for(int i = 0; i < files.size(); i++){
-            File file = new File(filePath + "-" + i + ".csv");
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-                for (String s : files.get(i)) {
-                    writer.write(s);
-                    writer.newLine();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        long sizeOfFile = fileToBeSorted.length();
+
+        // we don't want to open up much more than 1024 temporary files
+        final int MAXTEMPFILES = 1024;
+        long blocksize = sizeOfFile / MAXTEMPFILES ;
+
+        // on the other hand, we don't want to create many temporary files
+        // for nothing. If blocksize is smaller than half the free memory, grow it.
+
+        long freeMem = Runtime.getRuntime().freeMemory();
+        if( blocksize < freeMem/2)
+            blocksize = freeMem/2;
+        else {
+            if(blocksize >= freeMem)
+                System.err.println("We expect to run out of memory. ");
         }
+        return blocksize;
     }
 
-        public static int splitFile(String filePath, int numberOfRowsInSingleFile) throws IOException {
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
-            int currNumberOfRows = 0;
+    public static List<File> splitFile(File filePath, CSVComparator comparatorColumn) throws IOException {
+        List<File> files = new ArrayList<File>();
 
-            List<List<String>> files = new ArrayList<>();
-            List<String> currFile = new ArrayList<>();
+        String header = null;
 
-            String line = "";
-            String header = reader.readLine();
-            String nextLine = "";
+        long blocksize = estimateBestSizeOfBlocks(filePath);
 
-            try{
-                while((line = reader.readLine()) != null){
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            header = reader.readLine();
 
-                    nextLine = reader.readLine();
-                    currFile.add(line);
-                    currNumberOfRows++;
-
-                    if(nextLine != null) {
-                        currFile.add(nextLine);
-                        currNumberOfRows++;
-                    }
-                    if(currNumberOfRows == numberOfRowsInSingleFile || nextLine == null) {
-
-                        files.add(currFile);
-                        currNumberOfRows = 0;
-                        currFile = new ArrayList<>();
-
-                    }
-
-                }
-                if(!currFile.isEmpty()){
-                    files.add(currFile);
-                }
-
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            finally {
-            reader.close();
-            }
-
-            writeInFile(filePath,files);
-
-            return files.size();
-        }
-
-        public static void sortFiles(String filePath, int chunks) throws IOException {
-            List<List<String>> files = new ArrayList<>();
-            List<String> currFile = new ArrayList<>();
-
-            for(int i = 0; i < chunks; i++){
-
-                BufferedReader reader = new BufferedReader(new FileReader(filePath + "-" + i + ".csv"));
+            try {
+                List<String> tempList = new ArrayList<>();
                 String line = "";
-                while((line = reader.readLine()) != null){
-                    currFile.add(line);
+                try {
+                    while (line != null) {
+                        long currBlockSize = 0;
+                        while ((currBlockSize < blocksize) && ((line = reader.readLine()) != null)) {
+                            tempList.add(line);
+                            currBlockSize += line.length();
+                        }
+                        files.add(sortAndSave(tempList, comparatorColumn));
+
+                        tempList.clear();
+                    }
+                } catch (EOFException eof) {
+                    if (tempList.size() > 0) {
+
+                        files.add(sortAndSave(tempList, comparatorColumn));
+
+                        tempList.clear();
+                    }
                 }
+            } finally {
                 reader.close();
-                Collections.sort(currFile);
-                files.add(currFile);
-                currFile = new ArrayList<>();
             }
-
-            writeInFile(filePath,files);
         }
+        return files;
+    }
+    public static File sortAndSave(List<String> tmpList, CSVComparator sortByComparatorColumn) throws IOException  {
 
-    public static void combineFiles(String filePath, int numChunks, String fieldName) throws IOException {
-        List<String> lines = new ArrayList<>();
+        Collections.sort(tmpList, sortByComparatorColumn);
 
-        for(int i = 0; i < numChunks; i++) {
+        File newtmpfile = File.createTempFile("sortAndSave" , "flatFile.csv");
 
-            BufferedReader reader = new BufferedReader(new FileReader(filePath + "-" + i + ".csv"));
-
-            String line = "";
-            while((line = reader.readLine())!= null) {
-                lines.add(line);
+        newtmpfile.deleteOnExit();
+        BufferedWriter fbw = new BufferedWriter(new FileWriter(newtmpfile));
+        try {
+            for(String r : tmpList) {
+                fbw.write(r);
+                fbw.newLine();
             }
+        } finally {
+            fbw.close();
+        }
+        return newtmpfile;
+    }
 
-            reader.close();
+    public static void mergeSortedFiles(List<File> files, File outputfile, final Comparator<String> cmp) throws IOException {
+        PriorityQueue<BinaryFileBuffer> pq = new PriorityQueue<BinaryFileBuffer>(11,
+                new Comparator<BinaryFileBuffer>() {
+                    public int compare(BinaryFileBuffer i, BinaryFileBuffer j) {
+                        return cmp.compare(i.peek(), j.peek());
+                    }
+                }
+        );
 
+        for (File f : files) {
+            BinaryFileBuffer binaryFileBuffer = new BinaryFileBuffer(f);
+            pq.add(binaryFileBuffer);
         }
 
-        Collections.sort(lines, new CSVComparator(fieldName));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputfile));
+        int rowcounter = 0;
+        try {
+            while(pq.size()>0) {
 
-        File outputFile = new File(filePath + "combined.csv");
-        BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
+                BinaryFileBuffer binaryFileBuffer = pq.poll();
 
-        for (String sortedLine : lines){
-            writer.write(sortedLine);
-            writer.newLine();
+                String r = binaryFileBuffer.pop();
+
+                bufferedWriter.write(r);
+
+                bufferedWriter.newLine();
+                ++rowcounter;
+
+                if(binaryFileBuffer.empty()) {
+
+                    binaryFileBuffer.bufferedReader.close();
+                    binaryFileBuffer.originalfile.delete();// we don't need you anymore
+
+                } else {
+                    pq.add(binaryFileBuffer); // add it back
+                }
+            }
+        } finally {
+            bufferedWriter.close();
+            for(BinaryFileBuffer binaryFileBuffer : pq ) binaryFileBuffer.close();
         }
-        writer.close();
     }
 
 
     public static void main(String[] args) throws IOException {
-        String filePath = "C:\\Users\\vpetrov\\Desktop\\csv\\MOCK_DATA.csv";
+        String filePath = "C:\\Users\\vpetrov\\Desktop\\csv\\CSV_Data_2023_1_26 16_5.csv";
+        String finalFile = "C:\\Users\\vpetrov\\Desktop\\csv\\combined_large.csv";
 
-        int maxRowsInOneFile = 300;
-
-        String sortBy = "age";
-
-        int numChunks = splitFile(filePath, maxRowsInOneFile);
-
-        sortFiles(filePath,numChunks);
-
-        combineFiles(filePath,numChunks,sortBy);
+        File combinedFile = new File(finalFile);
+        CSVComparator cmp = new CSVComparator("first_name");
+        List<File> file = splitFile(new File(filePath), cmp) ;
+        mergeSortedFiles(file, combinedFile ,cmp);
 
     }
 }
