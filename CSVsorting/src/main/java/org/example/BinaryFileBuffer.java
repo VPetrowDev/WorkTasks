@@ -2,8 +2,6 @@ package org.example;
 
 import java.io.*;
 
-
-
 public class BinaryFileBuffer {
     public static int BUFFERSIZE = 2048;
     public BufferedReader bufferedReader;

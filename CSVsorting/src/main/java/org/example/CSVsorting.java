@@ -17,6 +17,7 @@ public class CSVsorting {
         // for nothing. If blocksize is smaller than half the free memory, grow it.
 
         long freeMem = Runtime.getRuntime().freeMemory();
+
         if( blocksize < freeMem/2)
             blocksize = freeMem/2;
         else {
@@ -71,14 +72,14 @@ public class CSVsorting {
         File newtmpfile = File.createTempFile("sortAndSave" , "flatFile.csv");
 
         newtmpfile.deleteOnExit();
-        BufferedWriter fbw = new BufferedWriter(new FileWriter(newtmpfile));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(newtmpfile));
         try {
             for(String r : tmpList) {
-                fbw.write(r);
-                fbw.newLine();
+                bufferedWriter.write(r);
+                bufferedWriter.newLine();
             }
         } finally {
-            fbw.close();
+            bufferedWriter.close();
         }
         return newtmpfile;
     }
@@ -98,7 +99,7 @@ public class CSVsorting {
         }
 
         BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputfile));
-        int rowcounter = 0;
+
         try {
             while(pq.size()>0) {
 
@@ -109,7 +110,6 @@ public class CSVsorting {
                 bufferedWriter.write(r);
 
                 bufferedWriter.newLine();
-                ++rowcounter;
 
                 if(binaryFileBuffer.empty()) {
 
