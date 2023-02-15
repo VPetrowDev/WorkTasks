@@ -1,23 +1,19 @@
 package org.example;
 public class Producer implements Runnable {
-    private final MessageManager messageManager;
-    private final int id;
+    private final KeyEvent keyEvent;
 
-    public Producer(MessageManager messageManager, int id) {
-        this.messageManager = messageManager;
-        this.id = id;
+    public Producer(KeyEvent keyEvent, int producerId) {
+        this.keyEvent = keyEvent;
     }
 
     @Override
     public void run() {
         int count = 0;
         while (count < 10) {
-            Message message = new Message(id, "Message " + count);
 
-            messageManager.addMessage(message);
+            Message message = new Message(count, "Message " + count);
 
-            System.out.println("Producer " + id + " added message " + count);
-
+            keyEvent.addEvent(message);
 
             count++;
             try {

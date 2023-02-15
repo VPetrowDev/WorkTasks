@@ -13,20 +13,20 @@ public class MessageManager {
         lockMap = new ConcurrentHashMap<>();
     }
 
-    public void addMessage(Message message) {
-        int id = message.getId();
-        if (!queueMap.containsKey(id)) {
+    public void addMessage(int key, Message message) {
 
-            queueMap.put(id, new ConcurrentLinkedQueue<>());
-            lockMap.put(id, new ReentrantLock());
+        if (queueMap.containsKey(key)) {
+
+            queueMap.putIfAbsent(key, new ConcurrentLinkedQueue<>());
+            lockMap.putIfAbsent(key, new ReentrantLock());
 
         }
 
-        ConcurrentLinkedQueue<Message> queue = queueMap.get(id);
-        ReentrantLock lock = lockMap.get(id);
-        lock.lock();
+        ConcurrentLinkedQueue<Message> queue = queueMap.get(key);
+        ReentrantLock lock = lockMap.get(key);
 
         try {
+            lock.lock();
             queue.add(message);
 
         } finally {
@@ -34,17 +34,17 @@ public class MessageManager {
         }
     }
 
-    public Message getMessage(int id) {
-        if (!queueMap.containsKey(id)) {
+    public Message getMessage(int key) {
+        if (!queueMap.containsKey(key)) {
             return null;
         }
 
-        ConcurrentLinkedQueue<Message> queue = queueMap.get(id);
-        ReentrantLock lock = lockMap.get(id);
-        lock.lock();
+        ConcurrentLinkedQueue<Message> queue = queueMap.get(key);
+        ReentrantLock lock = lockMap.get(key);
 
         try {
-            return queue.remove();
+            lock.lock();
+           return queue.remove();
 
         } finally {
             lock.unlock();
@@ -58,4 +58,6 @@ public class MessageManager {
                 ", lockMap=" + lockMap +
                 '}';
     }
+
+
 }
