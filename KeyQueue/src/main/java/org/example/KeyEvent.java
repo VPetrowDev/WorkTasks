@@ -16,20 +16,17 @@ public class KeyEvent {
 
     public void addEvent(Message event) {
         boolean added;
+        added = mySet.add(event);
 
-        synchronized (mySet) {
-            added = mySet.add(event);
-        }
         if (added) {
             myQueue.add(event);
             System.out.println("Added successfully to the queue! " + event.getMessage());
         } else {
-            System.out.println("Oops we have the same event in the set already. Wait in the array! " + event.getMessage());
+            System.out.println("Oops we have the same event in the set already. Wait in the queue! " + event.getMessage());
             tempQueue.add(event);
         }
 
         Message duplicateMessage = null;
-        synchronized (mySet) {
             if (!myQueue.contains(event)) {
 
                 System.out.println("Checking if this event has been processed. If yes, add it to the queue!");
@@ -37,7 +34,6 @@ public class KeyEvent {
                 mySet.add(duplicateMessage);
 
             }
-        }
 
         if (duplicateMessage != null) {
             myQueue.add(duplicateMessage);
@@ -46,7 +42,6 @@ public class KeyEvent {
     }
 
     public Message removeEvent(Message event) {
-        synchronized (mySet) {
             if (tempQueue.contains(event)) {
                 // The event is a duplicate, so don't remove it from the queue
                 System.out.println("Event is a duplicate, so not removing from the queue: " + event.getMessage());
@@ -57,7 +52,6 @@ public class KeyEvent {
                 System.out.println("Removed event from the set: " + event.getMessage());
                 return myQueue.poll();
             }
-        }
     }
 
 }
