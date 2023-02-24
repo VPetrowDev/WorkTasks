@@ -1,57 +1,109 @@
-package org.example;
+ package org.example;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class KeyEvent {
-    ConcurrentLinkedQueue<Message> myQueue;
-    private final Set<Message> mySet;
-    private final Queue<Message> tempQueue = new ConcurrentLinkedQueue<>();
+ public class KeyEvent {
+     final BlockingQueue<Message> myQueue;
+     private final Set<Message> mySet;
+     final BlockingQueue<Message> tempQueue = new LinkedBlockingQueue<>();
+     final Lock lock = new ReentrantLock();
+     AtomicInteger numOfActiveConsumers = new AtomicInteger(0);
 
-    public KeyEvent(ConcurrentLinkedQueue<Message> myQueue, Set<Message> mySet) {
-        this.myQueue = myQueue;
-        this.mySet = mySet;
-    }
+     public KeyEvent(BlockingQueue<Message> myQueue, Set<Message> mySet) {
+         this.myQueue = myQueue;
+         this.mySet = mySet;
+     }
 
+     public boolean checkSet(Message message){
+         lock.lock();
+         try{
+             if(message == null){
+                 return false;
+             }
+            return mySet.add(message);
+         }finally {
+             lock.unlock();
+         }
+     }
 
-    public void addEvent(Message event) {
-        boolean added;
-        added = mySet.add(event);
+     public void doneAddingEvents() throws InterruptedException {
+        int numOfPoisonPills = numOfActiveConsumers.get();
 
-        if (added) {
-            myQueue.add(event);
-            System.out.println("Added successfully to the queue! " + event.getMessage());
-        } else {
-            System.out.println("Oops we have the same event in the set already. Wait in the queue! " + event.getMessage());
-            tempQueue.add(event);
+        for(int i = 0; i < numOfPoisonPills; i++){
+
+         myQueue.put(Message.POISON_PILL);
+
         }
+     }
 
-        Message duplicateMessage = null;
-            if (!myQueue.contains(event)) {
+     public void checkIfEventHasBeenProcessed() throws InterruptedException {
+         lock.lock();
+         try {
 
-                System.out.println("Checking if this event has been processed. If yes, add it to the queue!");
-                duplicateMessage = tempQueue.poll();
-                mySet.add(duplicateMessage);
+             Message messageFromTheTempQueue = tempQueue.peek();
 
-            }
+             boolean ifPass = checkSet(messageFromTheTempQueue);
+             if (ifPass) {
 
-        if (duplicateMessage != null) {
-            myQueue.add(duplicateMessage);
-            tempQueue.remove(duplicateMessage);
-        }
-    }
+                 messageFromTheTempQueue = tempQueue.take();
+                 myQueue.add(messageFromTheTempQueue);
 
-    public Message removeEvent(Message event) {
-            if (tempQueue.contains(event)) {
-                // The event is a duplicate, so don't remove it from the queue
-                System.out.println("Event is a duplicate, so not removing from the queue: " + event.getMessage());
-                return null;
-            } else {
-                // The event is not a duplicate, so remove it from the queue and the set
-                mySet.remove(event);
-                System.out.println("Removed event from the set: " + event.getMessage());
-                return myQueue.poll();
-            }
-    }
+                 if(tempQueue.size() == 0){
+                     doneAddingEvents();
+                 }
+                 System.out.println("Deleted from the tempQueue: " + messageFromTheTempQueue);
 
-}
+             }
+         } finally {
+             lock.unlock();
+         }
+     }
+
+     public void addEvent(Message event) throws InterruptedException {
+         lock.lock();
+         try {
+
+             boolean added = checkSet(event);
+
+             if (added) {
+
+                 myQueue.put(event);
+                 System.out.println("Added successfully to the queue! " + event.getMessage());
+
+             } else {
+                 System.out.println("Oops we have the same event in the set already. Wait in the tempQueue! " + event.getMessage());
+
+                 tempQueue.put(event);
+             }
+
+      //checkIfEventHasBeenProcessed();
+         }finally {
+             lock.unlock();
+         }
+     }
+
+     public void removeEvent (Message event) throws InterruptedException {
+         lock.lock();
+         try {
+
+             myQueue.remove(event);
+             mySet.remove(event);
+             checkIfEventHasBeenProcessed();
+
+         }finally {
+             lock.unlock();
+         }
+     }
+     public void incrementAndGetNumConsumers() {
+         numOfActiveConsumers.incrementAndGet();
+     }
+
+     public void decrementAndGetNumConsumers() {
+         numOfActiveConsumers.decrementAndGet();
+     }
+ }

@@ -6,6 +6,7 @@ public class Message {
     private final int key;
     private final String message;
 
+    public static final Message POISON_PILL = new Message(-1, "POISON_PILL");
     public Message(int key, String message) {
         this.key = key;
         this.message = message;
@@ -16,10 +17,6 @@ public class Message {
                 "id=" + key +
                 ", message='" + message + '\'' +
                 '}';
-    }
-
-    public int getKey() {
-        return key;
     }
 
     public String getMessage() {

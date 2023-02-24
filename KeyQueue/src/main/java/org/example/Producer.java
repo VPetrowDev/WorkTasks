@@ -8,20 +8,21 @@ public class Producer implements Runnable {
 
     @Override
     public void run() {
-        int count = 0;
-        while (count < 10) {
+        try {
 
-            Message message = new Message(count, "Message " + count);
+            generateMessages();
 
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void generateMessages() throws InterruptedException {
+
+        for(int i = 0; i < 10; i++){
+
+            Message message = new Message(i, "Message " + i);
             keyEvent.addEvent(message);
 
-            count++;
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
-
     }
 }
