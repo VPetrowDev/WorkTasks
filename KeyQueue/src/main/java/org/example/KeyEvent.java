@@ -3,17 +3,14 @@
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
  public class KeyEvent {
-     final BlockingQueue<Message> myQueue;
-     private final Set<Message> mySet;
+     BlockingQueue<Message> myQueue;
+     final Set<Message> mySet;
      final BlockingQueue<Message> tempQueue = new LinkedBlockingQueue<>();
      final Lock lock = new ReentrantLock();
-     AtomicInteger numOfActiveConsumers = new AtomicInteger(0);
-
      public KeyEvent(BlockingQueue<Message> myQueue, Set<Message> mySet) {
          this.myQueue = myQueue;
          this.mySet = mySet;
@@ -32,14 +29,15 @@ import java.util.concurrent.locks.ReentrantLock;
      }
 
      public void doneAddingEvents() throws InterruptedException {
-        int numOfPoisonPills = numOfActiveConsumers.get();
-
-        for(int i = 0; i < numOfPoisonPills; i++){
-
-         myQueue.put(Message.POISON_PILL);
-
-        }
+         lock.lock();
+         try {
+             mySet.add(Message.POISON_PILL);
+         }
+         finally {
+             lock.unlock();
+         }
      }
+
 
      public void checkIfEventHasBeenProcessed() throws InterruptedException {
          lock.lock();
@@ -51,13 +49,15 @@ import java.util.concurrent.locks.ReentrantLock;
              if (ifPass) {
 
                  messageFromTheTempQueue = tempQueue.take();
+                 mySet.add(messageFromTheTempQueue);
                  myQueue.add(messageFromTheTempQueue);
 
-                 if(tempQueue.size() == 0){
-                     doneAddingEvents();
-                 }
-                 System.out.println("Deleted from the tempQueue: " + messageFromTheTempQueue);
 
+                 System.out.println("Deleted from the tempQueue and added from the tempQueue to mySet: " + messageFromTheTempQueue);
+
+             }
+             if(tempQueue.size() == 0){
+                 doneAddingEvents();
              }
          } finally {
              lock.unlock();
@@ -75,13 +75,13 @@ import java.util.concurrent.locks.ReentrantLock;
                  myQueue.put(event);
                  System.out.println("Added successfully to the queue! " + event.getMessage());
 
+
              } else {
                  System.out.println("Oops we have the same event in the set already. Wait in the tempQueue! " + event.getMessage());
-
                  tempQueue.put(event);
+
              }
 
-      //checkIfEventHasBeenProcessed();
          }finally {
              lock.unlock();
          }
@@ -91,19 +91,17 @@ import java.util.concurrent.locks.ReentrantLock;
          lock.lock();
          try {
 
-             myQueue.remove(event);
-             mySet.remove(event);
+             if(mySet.remove(event)){
+                 myQueue.remove(event);
+                 System.out.println("Removed from the set and the queue " + event.getMessage());
+
+
+             }
              checkIfEventHasBeenProcessed();
 
          }finally {
              lock.unlock();
          }
      }
-     public void incrementAndGetNumConsumers() {
-         numOfActiveConsumers.incrementAndGet();
-     }
 
-     public void decrementAndGetNumConsumers() {
-         numOfActiveConsumers.decrementAndGet();
-     }
  }
