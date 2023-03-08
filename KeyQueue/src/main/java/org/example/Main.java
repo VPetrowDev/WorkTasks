@@ -9,9 +9,9 @@ public class Main {
 
     public static void main(String[] args){
         BlockingQueue<Message> myQueue = new LinkedBlockingQueue<>();
-         Set<Message> mySet = ConcurrentHashMap.newKeySet();
+        Set<Message> mySet = ConcurrentHashMap.newKeySet();
 
-         KeyEvent keyEvent = new KeyEvent(myQueue,mySet);
+        KeyEvent keyEvent = new KeyEvent(myQueue,mySet);
 
         Thread producer1 = new Thread(new Producer(keyEvent, 1));
         Thread producer2 = new Thread(new Producer(keyEvent, 2));
