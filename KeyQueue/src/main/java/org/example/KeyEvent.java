@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
          }
      }
 
+
      public void doneAddingEvents() throws InterruptedException {
          lock.lock();
          try {
@@ -48,6 +49,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
              Message messageFromTheTempQueue = tempQueue.peek();
 
+             if (messageFromTheTempQueue == null) {
+                 return;
+             }
+
              boolean ifPass = checkSet(messageFromTheTempQueue);
              if (ifPass) {
 
@@ -56,7 +61,7 @@ import java.util.concurrent.locks.ReentrantLock;
                  myQueue.add(messageFromTheTempQueue);
 
 
-                 System.out.println("Deleted from the tempQueue and added from the tempQueue to mySet: " + messageFromTheTempQueue);
+                 System.out.println("Deleted from the tempQueue and added from the tempQueue to mySet and myQueue: " + messageFromTheTempQueue);
 
              }
              if(tempQueue.size() == 0){
@@ -97,12 +102,14 @@ import java.util.concurrent.locks.ReentrantLock;
             while(mySet.isEmpty()){
                 emptyQueue.await();
             }
-             if(mySet.remove(event)){
-                 myQueue.remove(event);
-                 System.out.println("Removed from the set and the queue " + event.getMessage());
+                    if (mySet.remove(event)) {
 
-             }
-             checkIfEventHasBeenProcessed();
+                        myQueue.remove(event);
+                        System.out.println("Removed from the set and the queue " + event.getMessage());
+
+                    }
+
+            // checkIfEventHasBeenProcessed();
 
          }finally {
              lock.unlock();

@@ -13,6 +13,7 @@ public class Main {
 
         KeyEvent keyEvent = new KeyEvent(myQueue,mySet);
 
+
         Thread producer1 = new Thread(new Producer(keyEvent, 1));
         Thread producer2 = new Thread(new Producer(keyEvent, 2));
 
@@ -24,6 +25,9 @@ public class Main {
 
         consumer1.start();
         consumer2.start();
+
+        Thread tempQueueCheker = new Thread(new TempQueueCheker(keyEvent));
+        tempQueueCheker.start();
 
     }
 }

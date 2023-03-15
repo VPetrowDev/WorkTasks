@@ -10,29 +10,40 @@ public class Consumer implements Runnable {
         this.consumerId = consumerId;
     }
 
+
     @Override
     public void run() {
 
+        try{
 
-        while (true) {
-
-            if (keyEvent.mySet.size() == 1 && keyEvent.mySet.contains(Message.POISON_PILL)) {
-                break;
-            }
+            while (true) {
 
             Message message = null;
-            try {
-                message = keyEvent.myQueue.peek();
 
-                if(message != null) {
-                    keyEvent.removeEvent(message);
-                    System.out.println("Consumer " + consumerId + " removed event " + message.getMessage());
-                }
+            message = keyEvent.myQueue.peek();
 
+            if (keyEvent.mySet.size() == 1 && keyEvent.mySet.contains(Message.POISON_PILL)) {
 
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                break;
+
+            } else if(message != null && message.isProcessing()){
+
+                continue;
+            } else if(message != null){
+
+                message.markProcessing();
             }
+
+            if (message != null) {
+                keyEvent.removeEvent(message);
+                System.out.println("Consumer " + consumerId + " removed event " + message.getMessage());
+                message.markProcessed();
+            }
+
+
+            }
+        } catch (InterruptedException e) {
+                throw new RuntimeException(e);
 
         }
     }

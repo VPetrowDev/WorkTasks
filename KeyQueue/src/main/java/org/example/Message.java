@@ -5,11 +5,21 @@ import java.util.Objects;
 public class Message {
     private final int key;
     private final String message;
-
+    private volatile boolean processing = false;
     public static final Message POISON_PILL = new Message(-1, "POISON_PILL");
     public Message(int key, String message) {
         this.key = key;
         this.message = message;
+    }
+
+    public synchronized void markProcessing(){
+        this.processing = true;
+    }
+    public synchronized void markProcessed(){
+        this.processing = false;
+    }
+    public synchronized boolean isProcessing(){
+        return processing;
     }
     @Override
     public String toString() {
